@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Saalim Labs Tools – Image & PDF Merger</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f6f9fc;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    h2 {
+      text-align: center;
+      color: #2c3e50;
+    }
+    h3 {
+      color: #34495e;
+      margin-top: 40px;
+    }
+    section {
+      background: #ffffff;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 30px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    input[type="file"], input[type="text"] {
+      margin-bottom: 10px;
+      padding: 6px;
+      width: 80%;
+    }
+    button {
+      background-color: #2980b9;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 5px;
+      margin-bottom: 10px;
+    }
+    button:hover {
+      background-color: #1c5980;
+    }
+    a button {
+      background-color: #27ae60;
+    }
+    a button:hover {
+      background-color: #1e874b;
+    }
+    canvas, img {
+      margin-top: 10px;
+      max-width: 100%;
+      display: block;
+    }
+    footer {
+      text-align: center;
+      margin-top: 50px;
+      font-size: 14px;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+  <h2>🪰 All-in-One Image & PDF Tool (By Saalim Labs)</h2>
+
+  <section>
+    <h3>📄 Convert Images to PDF</h3>
+    <input type="file" id="pdfImageInput" multiple accept="image/*"><br>
+    <button onclick="createPdf()">Convert to PDF</button><br>
+    <a id="pdfDownloadLink" style="display:none;" download="images_to_pdf.pdf">
+      <button>⬇️ Download PDF</button>
+    </a>
+  </section>
+
+  <section>
+    <h3>⬇️ Merge Images Vertically</h3>
+    <input type="file" id="imageInputVertical" multiple accept="image/*"><br>
+    <button onclick="mergeImagesVertical()">Merge Vertically</button><br>
+    <a id="downloadLinkVertical" style="display: none;" download="vertical_merge.png">
+      <button>⬇️ Download Vertical Image</button>
+    </a>
+    <canvas id="canvasVertical" style="display:none;"></canvas>
+    <img id="resultImageVertical" style="display: none;" />
+  </section>
+
+  <section>
+    <h3>🔳 Merge Images in Square Grid</h3>
+    <input type="file" id="imageInputGrid" multiple accept="image/*"><br>
+    <button onclick="mergeImagesGrid()">Merge Grid</button><br>
+    <a id="downloadLinkGrid" style="display: none;" download="grid_merge.png">
+      <button>⬇️ Download Grid Image</button>
+    </a>
+    <canvas id="canvasGrid" style="display:none;"></canvas>
+    <img id="resultImageGrid" style="display: none;" />
+  </section>
+
+  <section>
+    <h3>📁 Merge Multiple PDFs</h3>
+    <input type="file" id="pdfInputMerge" multiple accept="application/pdf"><br>
+    <button onclick="mergePdfs()">Merge PDFs</button><br>
+    <a id="pdfMergeDownload" style="display: none;" download="merged_pdfs.pdf">
+      <button>⬇️ Download Merged PDF</button>
+    </a>
+  </section>
+
+  <section>
+    <h3>🗒️ QR Code Generator</h3>
+    <input type="text" id="qrText" placeholder="Enter text or link"><br>
+    <button onclick="generateQRCode()">Generate QR</button><br>
+    <canvas id="qrCanvas"></canvas><br>
+    <a id="qrDownloadLink" style="display:none;" download="qr_code.png">
+      <button>⬇️ Download QR Code</button>
+    </a>
+  </section>
+
+  <section>
+    <h3>📷 QR Code Scanner (from Image)</h3>
+    <input type="file" id="qrFileInput" accept="image/*" onchange="scanQRCode()"><br>
+    <p id="qrResultText" style="margin-top:10px; font-weight: bold;"></p>
+  </section>
+
+  <footer>🚀 Made with ❤️ by <strong>Saalim Labs</strong></footer>
+
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+  <script>
+    // QR Generator
+    function generateQRCode() {
+      const text = document.getElementById("qrText").value;
+      const canvas = document.getElementById("qrCanvas");
+      const link = document.getElementById("qrDownloadLink");
+      link.style.display = "none";
+      if (!text) return alert("Please enter text for QR code.");
+
+      QRCode.toCanvas(canvas, text, { width: 200 }, function (error) {
+        if (error) return alert("QR Generation Error!");
+        canvas.toBlob(blob => {
+          const url = URL.createObjectURL(blob);
+          link.href = url;
+          link.style.display = 'inline-block';
+        });
+      });
+    }
+
+    // QR Scanner
+    function scanQRCode() {
+      const fileInput = document.getElementById("qrFileInput");
+      const resultEl = document.getElementById("qrResultText");
+      resultEl.textContent = "";
+
+      const file = fileInput.files[0];
+      if (!file) return alert("Please select a QR image.");
+
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, canvas.width, canvas.height);
+        if (code) {
+          resultEl.textContent = "QR Content: " + code.data;
+        } else {
+          resultEl.textContent = "No QR code found in image.";
+        }
+      };
+      img.src = URL.createObjectURL(file);
+    }
+
+    // Convert Images to PDF
+    async function createPdf() {
+      const files = Array.from(document.getElementById('pdfImageInput').files);
+      const link = document.getElementById('pdfDownloadLink');
+      link.style.display = 'none';
+      if (files.length === 0) return alert("Please select image files.");
+      const { PDFDocument } = PDFLib;
+      const pdfDoc = await PDFDocument.create();
+
+      for (const file of files) {
+        const imgURL = URL.createObjectURL(file);
+        const img = new Image();
+        img.src = imgURL;
+
+        await new Promise(resolve => {
+          img.onload = async () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            canvas.getContext('2d').drawImage(img, 0, 0);
+            const dataURL = canvas.toDataURL(file.type);
+            const bytes = await fetch(dataURL).then(res => res.arrayBuffer());
+            const embed = file.type.includes('jpeg') ? 
+                          await pdfDoc.embedJpg(bytes) : 
+                          await pdfDoc.embedPng(bytes);
+            const page = pdfDoc.addPage([img.width, img.height]);
+            page.drawImage(embed, { x: 0, y: 0, width: img.width, height: img.height });
+            resolve();
+          };
+        });
+      }
+
+      const pdfBytes = await pdfDoc.save();
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      link.href = URL.createObjectURL(blob);
+      link.style.display = 'inline-block';
+    }
+
+    // Merge Images Vertically
+    async function mergeImagesVertical() {
+      const files = Array.from(document.getElementById('imageInputVertical').files);
+      if (!files.length) return alert('Select images.');
+      const images = await Promise.all(files.map(file => new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.src = URL.createObjectURL(file);
+      })));
+
+      const canvas = document.getElementById('canvasVertical');
+      const ctx = canvas.getContext('2d');
+      const totalWidth = Math.max(...images.map(img => img.width));
+      const totalHeight = images.reduce((sum, img) => sum + img.height, 0);
+      canvas.width = totalWidth;
+      canvas.height = totalHeight;
+
+      let y = 0;
+      for (const img of images) {
+        ctx.drawImage(img, 0, y);
+        y += img.height;
+      }
+
+      canvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        document.getElementById('resultImageVertical').src = url;
+        document.getElementById('resultImageVertical').style.display = 'block';
+        const link = document.getElementById('downloadLinkVertical');
+        link.href = url;
+        link.style.display = 'inline-block';
+      }, 'image/png');
+    }
+
+    // Merge Images in Grid
+    async function mergeImagesGrid() {
+      const files = Array.from(document.getElementById('imageInputGrid').files);
+      if (!files.length) return alert('Select images.');
+      const images = await Promise.all(files.map(file => new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.src = URL.createObjectURL(file);
+      })));
+
+      const gridSize = Math.ceil(Math.sqrt(images.length));
+      const thumbWidth = Math.min(...images.map(img => img.width));
+      const thumbHeight = Math.min(...images.map(img => img.height));
+
+      const canvas = document.getElementById('canvasGrid');
+      const ctx = canvas.getContext('2d');
+      canvas.width = gridSize * thumbWidth;
+      canvas.height = gridSize * thumbHeight;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      images.forEach((img, i) => {
+        const x = (i % gridSize) * thumbWidth;
+        const y = Math.floor(i / gridSize) * thumbHeight;
+        ctx.drawImage(img, x, y, thumbWidth, thumbHeight);
+      });
+
+      canvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        document.getElementById('resultImageGrid').src = url;
+        document.getElementById('resultImageGrid').style.display = 'block';
+        const link = document.getElementById('downloadLinkGrid');
+        link.href = url;
+        link.style.display = 'inline-block';
+      }, 'image/png');
+    }
+
+    // Merge PDFs
+    async function mergePdfs() {
+      const files = Array.from(document.getElementById('pdfInputMerge').files);
+      if (files.length < 2) return alert("Select at least two PDF files.");
+      const { PDFDocument } = PDFLib;
+      const mergedPdf = await PDFDocument.create();
+      for (const file of files) {
+        const bytes = await file.arrayBuffer();
+        const donorPdf = await PDFDocument.load(bytes);
+        const pages = await mergedPdf.copyPages(donorPdf, donorPdf.getPageIndices());
+        pages.forEach(page => mergedPdf.addPage(page));
+      }
+      const pdfBytes = await mergedPdf.save();
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const link = document.getElementById('pdfMergeDownload');
+      link.href = URL.createObjectURL(blob);
+      link.style.display = 'inline-block';
+    }
+  </script>
+</body>
+</html>
